@@ -574,7 +574,7 @@ class ImageTransform:
         if the transformation isn't the first).
         """
         if auto:        
-            if self.transformations==[]:
+            if self._transformations==[]:
                 d=d.real*self._input_scaling+1j*d.imag-1j/c
             else:
                 d=d.real*self._output_scaling+1j*d.imag-1j/c
@@ -592,21 +592,21 @@ class ImageTransform:
                     try:
                         cl=coef[0]*self.data[[vv],[uu]][0]+coef[1]*self.data[[(vv+1)%self.data.shape[0]],[uu]][0]+coef[2]*self.data[[vv],[(uu+1)%self.data.shape[1]]][0]+coef[3]*self.data[[(vv+1)%self.data.shape[0]],[(uu+1)%self.data.shape[1]]][0]
                     except Exception:
-                        print("Strange error :",str(self.transformations))
+                        print("Strange error :",str(self._transformations))
                         cl=coef[0]*self.data[[vv%self.data.shape[0]],[uu%self.data.shape[1]]][0]+coef[1]*self.data[[(vv+1)%self.data.shape[0]],[uu%self.data.shape[1]]][0]+coef[2]*self.data[[vv%self.data.shape[0]],[(uu+1)%self.data.shape[1]]][0]+coef[3]*self.data[[(vv+1)%self.data.shape[0]],[(uu+1)%self.data.shape[1]]][0]
                 else:
                     coef=np.array(list(zip(coef,coef,coef))).reshape(4,self._height,self._width,3)
                     try:
                         cl=np.uint8(coef[0]*self.data[[vv],[uu]][0]+coef[1]*self.data[[(vv+1)%self.data.shape[0]],[uu]][0]+coef[2]*self.data[[vv],[(uu+1)%self.data.shape[1]]][0]+coef[3]*self.data[[(vv+1)%self.data.shape[0]],[(uu+1)%self.data.shape[1]]][0])
                     except Exception:
-                        print("Strange error :",str(self.transformations))
+                        print("Strange error :",str(self._transformations))
                         cl=np.uint8(coef[0]*self.data[[vv%self.data.shape[0]],[uu%self.data.shape[1]]][0]+coef[1]*self.data[[(vv+1)%self.data.shape[0]],[uu%self.data.shape[1]]][0]+coef[2]*self.data[[vv%self.data.shape[0]],[(uu+1)%self.data.shape[1]]][0]+coef[3]*self.data[[(vv+1)%self.data.shape[0]],[(uu+1)%self.data.shape[1]]][0])
                 return cl
             else:
                 try:
                     cl=self.data[[np.floor(iv%self.data.shape[0])],[np.floor(iu%self.data.shape[1])],:]
                 except Exception:
-                    print("Strange error :",str(self.transformations))
+                    print("Strange error :",str(self._transformations))
                     cl=self.data[[np.floor(iv)%self.data.shape[0]],[np.floor(iu)%self.data.shape[1]],:]
                 return cl[0]    
     
