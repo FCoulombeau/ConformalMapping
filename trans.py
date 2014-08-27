@@ -595,7 +595,7 @@ class ImageTransform:
                         print("Strange error :",str(self.transformations))
                         cl=coef[0]*self.data[[vv%self.data.shape[0]],[uu%self.data.shape[1]]][0]+coef[1]*self.data[[(vv+1)%self.data.shape[0]],[uu%self.data.shape[1]]][0]+coef[2]*self.data[[vv%self.data.shape[0]],[(uu+1)%self.data.shape[1]]][0]+coef[3]*self.data[[(vv+1)%self.data.shape[0]],[(uu+1)%self.data.shape[1]]][0]
                 else:
-                    coef=np.array(list(zip(coef,coef,coef))).reshape(4,self.Ny,self.Nx,3)
+                    coef=np.array(list(zip(coef,coef,coef))).reshape(4,self._height,self._width,3)
                     try:
                         cl=np.uint8(coef[0]*self.data[[vv],[uu]][0]+coef[1]*self.data[[(vv+1)%self.data.shape[0]],[uu]][0]+coef[2]*self.data[[vv],[(uu+1)%self.data.shape[1]]][0]+coef[3]*self.data[[(vv+1)%self.data.shape[0]],[(uu+1)%self.data.shape[1]]][0])
                     except Exception:
