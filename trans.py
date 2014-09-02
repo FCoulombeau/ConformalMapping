@@ -213,7 +213,7 @@ class ImageTransform:
         Puts stripes with the number "nbpix" of pixels around the output and
         between the mirrored inputs with color "color"."""
         if self.format.upper()=='PNG':
-            color = [color[k]/255 for k in range(3)]+[1.]
+            color = [color[k]/255 for k in range(3)]
         self.data = mirror(self.data,X=X,Y=Y,nbpix=nbpix,color=color)
         self._input_scaling = self.data.shape[1]/self.data.shape[0]
     def _f(self,z):
@@ -588,7 +588,7 @@ class ImageTransform:
                 du,dv=u-uu,v-vv
                 coef=np.array([(du if i else 1-du)*(dv if j else 1-dv) for i in range(2) for j in range(2)])
                 if self.format.upper()=='PNG':                    
-                    coef=np.array(list(zip(coef,coef,coef,coef))).reshape(4,self.Ny,self.Nx,4)
+                    coef=np.array(list(zip(coef,coef,coef))).reshape(4,self._height,self._width,3)
                     try:
                         cl=coef[0]*self.data[[vv],[uu]][0]+coef[1]*self.data[[(vv+1)%self.data.shape[0]],[uu]][0]+coef[2]*self.data[[vv],[(uu+1)%self.data.shape[1]]][0]+coef[3]*self.data[[(vv+1)%self.data.shape[0]],[(uu+1)%self.data.shape[1]]][0]
                     except Exception:
