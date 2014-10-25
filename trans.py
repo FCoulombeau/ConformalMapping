@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 """Conformal mappings of the complex plane used to manipulate and transform
 images and videos.
-@author: FranÃ§ois Coulombeau
-@date : 2014
+@author: François Coulombeau
+@date : 2014-11
 @version : 0.2
+@changes :
+(0.2)   
 """
 
 import matplotlib.pyplot as plt
-import moviepy.editor as vided
+import moviepy.editor as mpy
 import numpy as np
 import math as m
 import time
@@ -179,7 +181,8 @@ class ImageTransform:
     The input image is put between -1j and 1j with origin in the middle of the
     image (real part depends on the shape of the input).
     The output image is also put between -1j and 1j with origin in the middle 
-    of the image (real part depends on the shape of the output)."""
+    of the image (real part depends on the shape of the output).
+    """
     def __init__(self,name,suffix=0,output_width=1024,output_height=704,r=1.,c=1.,d=0.,blur=False,data=None):
         """Creates an object either from a file if data==None or from a numpy
         array given in data.
@@ -211,9 +214,12 @@ class ImageTransform:
         """Replaces the input image by a mirrored version got by mirroring
         the input d along its right edge if X=2 and along its bottom edge if Y=2.
         Puts stripes with the number "nbpix" of pixels around the output and
-        between the mirrored inputs with color "color"."""
-        if self.format.upper()=='PNG':
-            color = [color[k]/255 for k in range(3)]
+        between the mirrored inputs with color "color".
+        """
+        if self.data.dtype==type(np.float32(1.)):
+             color=[color[k]/255 for k in range(3)]
+        if self.data.shape[2]==4:
+            color = color+[1.]
         self.data = mirror(self.data,X=X,Y=Y,nbpix=nbpix,color=color)
         self._input_scaling = self.data.shape[1]/self.data.shape[0]
     def _f(self,z):
@@ -514,10 +520,6 @@ class ImageTransform:
         if auto:
             self.similitude(c=1/m.pi)
         
-#    def gd(self,Q=0):
-#        self.tanComp(Angle=False,c=2,Q=Q)
-#        self.lnComp()
-        
     def oval(self,N=1,P=1,Q=0,auto=True,d=0.):  
         """A mapping built on sine function removing the corners of the input.
         If auto==True, complex number d is expressed in percent of the 
@@ -587,8 +589,11 @@ class ImageTransform:
                 uu,vv=np.floor(u),np.floor(v)
                 du,dv=u-uu,v-vv
                 coef=np.array([(du if i else 1-du)*(dv if j else 1-dv) for i in range(2) for j in range(2)])
-                if self.format.upper()=='PNG':                    
-                    coef=np.array(list(zip(coef,coef,coef))).reshape(4,self._height,self._width,3)
+                if self.data.dtype==type(np.float32(1.)):
+                    if self.data.shape[2]==4:
+                        coef=np.array(list(zip(coef,coef,coef,coef))).reshape(4,self._height,self._width,4)
+                    else:
+                        coef=np.array(list(zip(coef,coef,coef))).reshape(4,self._height,self._width,3)
                     try:
                         cl=coef[0]*self.data[[vv],[uu]][0]+coef[1]*self.data[[(vv+1)%self.data.shape[0]],[uu]][0]+coef[2]*self.data[[vv],[(uu+1)%self.data.shape[1]]][0]+coef[3]*self.data[[(vv+1)%self.data.shape[0]],[(uu+1)%self.data.shape[1]]][0]
                     except Exception:
@@ -621,15 +626,20 @@ class ImageTransform:
             res[indices]=color
         if infini:
             return res
-        if self.format.upper()=='PNG':
-            color=[color[k]/255 for k in range(3)]+[1.]
+        if self.data.dtype==type(np.float32(1.)):
+             color=[color[k]/255 for k in range(3)]
         else:
             color=np.uint8(color)
-        indices=np.array([[[m.floor(j.real/self.data.shape[1]),m.floor(j.imag/self.data.shape[0])] not in liste for j in i] for i in FPt])
-        res[indices]=color
-        
+        if self.data.shape[2]==4:
+            color = color+[1.]
+        indices = np.array([[[m.floor(j.real/self.data.shape[1]),
+                              m.floor(j.imag/self.data.shape[0])]
+                              not in liste for j in i] for i in FPt])
+        res[indices] = color
         return res
-    def transform(self,infinite=True,lst=[[0,0]],MaxX=np.NaN,color=[255]*3,print_and_save=True):
+
+    def transform(self, infinite=True, lst=[[0,0]], MaxX=np.NaN, color=[255]*3,
+                  print_and_save=True):
         """Perform the transformation(s).
         If infinite=True, the whole plane is covered by the input image or half
         the plane is MaxX is given.
@@ -644,7 +654,8 @@ class ImageTransform:
             plt.imshow(list(Couleurs), cmap=plt.cm.gray)
             plt.imsave(self.name+"-"+str(self.suffix)+'.'+self.format,Couleurs)
         return Couleurs
-    def video(self,trans,nbim,filename,gif=True):
+
+    def video(self,trans,nbim,filename,gif=True,infinite=True,lst=[[0,0]],MaxX=np.NaN,color=[255]*3,pause=0,fps=10):
         """Makes a gif or a video from an input image applying transformations
         given in trans parameter which evolve according to the integer value of
         a variable called i.
@@ -659,16 +670,22 @@ class ImageTransform:
             for t in s:
                 exec("self."+t)
             start = time.time()
-            Couleurs=self._trouveCouleurs()
+            Couleurs=self._trouveCouleurs(infini=infinite,liste=lst,color=color,MaxX=MaxX)
             print("Image "+str(i)+" - Calcul :",time.time()-start)
             self._transformations=[]
             imgs.append(Couleurs)
-        v=vided.ImageSequenceClip(imgs,10,with_mask=False)
+        for i in range(fps*pause):
+            imgs.append(Couleurs)
+        v=mpy.ImageSequenceClip(imgs,10,with_mask=False)
         if gif:
-            v.to_gif(filename,fps=10,loop=0,program='ImageMagick')
+            v.to_gif(filename,fps=fps,loop=0,program='ImageMagick')
         else:
-            v.to_videofile(filename,fps=10,audio=False)
+            v.to_videofile(filename,fps=fps,audio=False)
+
     def sample(self,rep='./'):
+        """Saves transformations sample into the directory rep (current 
+        directory by default).
+        """
         trans={".invers_fisheye()",".fisheye()",".oval()",".ln()",".arctan()"
                ,".arcsin()",".symmetry4()",".symmetry4_v2()",".symmetry3()"
                ,".tan()",".sin()",".exp()",".tan(angle=False)",".sin(angle=False)"
@@ -684,18 +701,26 @@ class ImageTransform:
             self._transformations=[]
 
 class VideoTransform(ImageTransform):
+    """Defines usefull methods to make conformal mappings over a video.
+    The input frames are put between -1j and 1j with origin in the middle of the
+    frames (real part depends on the shape of the input).
+    The output frames are also put between -1j and 1j with origin in the middle 
+    of the frames (real part depends on the shape of the output).
+    """
     def __init__(self,name,suffix=0,output_width=1024,output_height=704,r=1.,c=1.,d=0.,blur=False):
-        self.video=vided.VideoFileClip(name,verbose=True)
+        self.video=mpy.VideoFileClip(name,verbose=True)
         self.duration=self.video.duration
         self.numpict=m.ceil(self.video.duration*self.video.fps)
         self.mirrored=False
         ImageTransform.__init__(self,name,suffix,output_width,output_height,r,c,d,blur,data=self.video.get_frame(0))
+
     def mirror(self,X=2,Y=2,nbpix=0,color=[255,255,255]):
         self.mirrored=True
         self.X=X
         self.Y=Y
         self.nbpix=nbpix
         self.color=color
+
     def transform(self,infinite=True,lst=[[0,0]],MaxX=np.NaN,color=[255]*3): 
         imgs=[]
         for i in range(self.numpict):
@@ -705,7 +730,7 @@ class VideoTransform(ImageTransform):
             imgs.append(ImageTransform.transform(self,print_and_save=False,infinite=infinite,lst=lst,MaxX=MaxX,color=color))
             print("Image "+str(i)+" - Calcul :",time.time()-start)
             self.data=self.video.get_frame(i*self.duration/self.numpict)
-        v=vided.ImageSequenceClip(imgs,self.video.fps,with_mask=False)
+        v=mpy.ImageSequenceClip(imgs,self.video.fps,with_mask=False)
         v=v.set_audio(self.video.audio)
         v.to_videofile(self.name+'-'+str(self.suffix)+'.avi',fps=self.video.fps)
 
